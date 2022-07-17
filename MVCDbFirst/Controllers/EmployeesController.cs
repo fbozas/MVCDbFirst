@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MVCDbFirst.Dtos;
+using MVCDbFirst.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,24 +12,23 @@ namespace MVCDbFirst.Controllers
 {
     public class EmployeesController : ApiController
     {
-        private readonly CompanyContext _context;
+        private readonly EmployeeRepository _employeeRepository;
 
         public EmployeesController()
         {
-            _context = new CompanyContext();
+            _employeeRepository = new EmployeeRepository();
         }
 
         public IHttpActionResult GetEmployees()
         {
-            var employees = _context.Employees.ToList();
+            var employees = _employeeRepository.GetAll();
             return Ok(employees.Select(Mapper.Map<Employee, EmployeeDto>));
         }
 
         public IHttpActionResult GetEmployee(int id)
         {
-            var employee = _context
-                .Employees
-                .SingleOrDefault(e => e.ID == id);
+            var employee = _employeeRepository.GetById(id);
+               
 
             if (employee == null)
                 return NotFound();
@@ -43,8 +43,8 @@ namespace MVCDbFirst.Controllers
                 return BadRequest(ModelState);
 
             var employee = Mapper.Map<EmployeeDto, Employee>(employeeDto);
-            _context.Employees.Add(employee);
-            _context.SaveChanges();
+            _employeeRepository.Create(employee);
+            _employeeRepository.Save();
             employeeDto.ID = employee.ID;
 
             return Created(new Uri(Request.RequestUri + "/" + employee.ID), employeeDto);
@@ -56,12 +56,12 @@ namespace MVCDbFirst.Controllers
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            var employeeInDb = _context.Employees.SingleOrDefault(e => e.ID == id);
+            var employeeInDb = _employeeRepository.GetById(id);
             if (employeeInDb == null)
                 return NotFound();
 
             Mapper.Map(employeeDto, employeeInDb);
-            _context.SaveChanges();
+            _employeeRepository.Save();
 
             return StatusCode(HttpStatusCode.NoContent);
         }
@@ -69,13 +69,13 @@ namespace MVCDbFirst.Controllers
         [HttpDelete]
         public IHttpActionResult DeleteEmployee(int id)
         {
-            var employeeIdDb = _context.Employees.SingleOrDefault(e => e.ID == id);
+            var employeeIdDb = _employeeRepository.GetById(id);
 
             if (employeeIdDb == null)
                 return NotFound();
 
-            _context.Employees.Remove(employeeIdDb);
-            _context.SaveChanges();
+            _employeeRepository.Delete(id);
+            _employeeRepository.Save();
 
             return Ok(employeeIdDb);
         }
